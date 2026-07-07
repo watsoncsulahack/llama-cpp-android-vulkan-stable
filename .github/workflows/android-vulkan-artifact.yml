@@ -23,6 +23,8 @@ env:
   NDK_VERSION: "29.0.14206865"
   ANDROID_PLATFORM: "android-31"
   ANDROID_ABI: "arm64-v8a"
+  ANDROID_HOME: "/usr/local/lib/android/sdk"
+  ANDROID_SDK_ROOT: "/usr/local/lib/android/sdk"
   LLAMA_REF: ${{ github.event.inputs.llama_ref || 'b9902' }}
 
 jobs:
@@ -50,17 +52,13 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699
-        with:
-          log-accepted-android-sdk-licenses: false
-
       - name: Install host dependencies and NDK
         run: |
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build glslc libvulkan-dev zip
-          sdkmanager "ndk;${NDK_VERSION}"
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "ndk;${NDK_VERSION}"
           echo "ANDROID_NDK=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Configure
