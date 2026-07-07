@@ -72,6 +72,7 @@ jobs:
             -DANDROID_ABI="${ANDROID_ABI}" \
             -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
             -DGGML_NATIVE=OFF \
+            -DGGML_BACKEND_DL=ON \
             -DGGML_CPU_ALL_VARIANTS=ON \
             -DGGML_OPENMP=OFF \
             -DGGML_VULKAN=ON \
