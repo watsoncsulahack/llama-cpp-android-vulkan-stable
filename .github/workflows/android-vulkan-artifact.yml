@@ -1,4 +1,5 @@
 name: Android arm64 Vulkan artifact
+# Builds a pinned llama.cpp Android/Termux Vulkan artifact for local inference testing.
 
 on:
   workflow_dispatch:
