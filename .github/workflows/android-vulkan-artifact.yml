@@ -1,0 +1,115 @@
+name: Android arm64 Vulkan artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      llama_ref:
+        description: "llama.cpp ref to build"
+        required: true
+        default: "b9902"
+        type: string
+  push:
+    branches:
+      - stable-b9902-android-vulkan
+    paths:
+      - ".github/workflows/android-vulkan-artifact.yml"
+      - "scripts/android-vulkan/**"
+
+permissions:
+  contents: read
+
+env:
+  NDK_VERSION: "29.0.14206865"
+  ANDROID_PLATFORM: "android-31"
+  ANDROID_ABI: "arm64-v8a"
+  LLAMA_REF: ${{ github.event.inputs.llama_ref || 'b9902' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ env.LLAMA_REF }}
+
+      - name: Restore packaging scripts
+        uses: actions/checkout@v6
+        with:
+          path: packaging
+          ref: stable-b9902-android-vulkan
+          sparse-checkout: |
+            scripts/android-vulkan
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699
+        with:
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install host dependencies and NDK
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build glslc libvulkan-dev zip
+          sdkmanager "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI="${ANDROID_ABI}" \
+            -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CPU_ALL_VARIANTS=ON \
+            -DGGML_OPENMP=OFF \
+            -DGGML_VULKAN=ON \
+            -DLLAMA_BUILD_COMMON=ON \
+            -DLLAMA_BUILD_TOOLS=ON \
+            -DLLAMA_BUILD_SERVER=ON \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_BORINGSSL=OFF \
+            -DLLAMA_CURL=OFF \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+
+      - name: Build
+        run: |
+          set -euxo pipefail
+          cmake --build build --config Release -j "$(nproc)" \
+            --target llama-server llama-cli llama-bench
+
+      - name: Package
+        run: |
+          set -euxo pipefail
+          ref_safe="$(printf '%s' "${LLAMA_REF}" | tr '/:@' '---')"
+          pkg="llama-${ref_safe}-android-arm64-vulkan"
+          mkdir -p "dist/${pkg}"
+          cp LICENSE "dist/${pkg}/"
+          cp packaging/scripts/android-vulkan/*.sh "dist/${pkg}/"
+          cp build/bin/llama-server build/bin/llama-cli build/bin/llama-bench "dist/${pkg}/"
+          cp build/bin/lib*.so* "dist/${pkg}/"
+          cp "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" "dist/${pkg}/"
+          chmod +x "dist/${pkg}"/*.sh "dist/${pkg}"/llama-*
+          (cd dist && zip -r "${pkg}.zip" "${pkg}")
+          sha256sum "dist/${pkg}.zip" > "dist/${pkg}.zip.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: llama-${{ env.LLAMA_REF }}-android-arm64-vulkan
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          retention-days: 30
