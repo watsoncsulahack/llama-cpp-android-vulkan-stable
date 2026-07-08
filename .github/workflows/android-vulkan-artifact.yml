@@ -74,11 +74,13 @@ jobs:
             -DSPIRV_HEADERS_ENABLE_TESTS=OFF \
             -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP}/spirv-headers-install"
           cmake --install "${RUNNER_TEMP}/SPIRV-Headers/build"
+          echo "SPIRV_HEADERS_INCLUDE_DIR=${RUNNER_TEMP}/spirv-headers-install/include" >> "$GITHUB_ENV"
           echo "SPIRV_HEADERS_CMAKE_DIR=${RUNNER_TEMP}/spirv-headers-install/share/cmake/SPIRV-Headers" >> "$GITHUB_ENV"
 
       - name: Configure
         run: |
           set -euxo pipefail
+          export CXXFLAGS="${CXXFLAGS:-} -isystem ${SPIRV_HEADERS_INCLUDE_DIR}"
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
