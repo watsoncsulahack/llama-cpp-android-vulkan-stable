@@ -80,9 +80,9 @@ jobs:
       - name: Configure
         run: |
           set -euxo pipefail
-          export CXXFLAGS="${CXXFLAGS:-} -isystem ${SPIRV_HEADERS_INCLUDE_DIR}"
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-isystem ${SPIRV_HEADERS_INCLUDE_DIR}" \
             -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI="${ANDROID_ABI}" \
             -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
