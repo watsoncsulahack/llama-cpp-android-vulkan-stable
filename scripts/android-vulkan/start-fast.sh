@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 MODEL="${1:-${HOME}/models/gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf}"
 shift || true
 
-export LD_LIBRARY_PATH="${PWD}:/system/lib64:${PREFIX:-/data/data/com.termux/files/usr}/lib:${LD_LIBRARY_PATH:-}"
+source ./env.sh
 
 exec ./llama-server \
   -m "${MODEL}" \

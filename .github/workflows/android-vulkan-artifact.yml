@@ -118,8 +118,9 @@ jobs:
           cp LICENSE "dist/${pkg}/"
           cp packaging/scripts/android-vulkan/*.sh "dist/${pkg}/"
           cp build/bin/llama-server build/bin/llama-cli build/bin/llama-bench "dist/${pkg}/"
-          cp build/bin/lib*.so* "dist/${pkg}/"
+          cp build/bin/lib*.so* "dist/${pkg}/" || true
           cp "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" "dist/${pkg}/"
+          rm -f "dist/${pkg}/libvulkan.so" "dist/${pkg}/libvulkan.so.1" || true
           chmod +x "dist/${pkg}"/*.sh "dist/${pkg}"/llama-*
           (cd dist && zip -r "${pkg}.zip" "${pkg}")
           sha256sum "dist/${pkg}.zip" > "dist/${pkg}.zip.sha256"
